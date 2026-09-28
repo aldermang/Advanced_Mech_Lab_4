@@ -2,7 +2,6 @@
 
 //calls in libraries
 #include <Arduino.h>
-#include <Adafruit_ST7789.h> //display screen
 #include <Adafruit_BNO08x.h> //sensor
 #include <math.h>
 #include <AceButton.h>
@@ -10,11 +9,7 @@
 
 //define misc variables
 using namespace ace_button;
-
 #define BNO08X_RESET -1
-Adafruit_BNO08x bno08x(BNO08X_RESET);
-sh2_SensorValue_t sensorValue;
-
 void setReports();
 
 
@@ -38,32 +33,38 @@ AxisMode curMode = mode_both;
 //defines "change_mode"
 void change_mode (AceButton* button, uint8_t eventType, uint8_t buttonState) {
   
+  /*
   //print message
   Serial.print(F("handleEvent(): eventType: "));
   Serial.print(AceButton::eventName(eventType));
   Serial.print(F("; buttonState: "));
   Serial.println(buttonState);
-  
+  */
+
   //D1 double click cycles through axis modes
   if (eventType == (uint8_t)AceButton::kEventDoubleClicked) {
     curMode = (AxisMode) ((curMode + 1) % AxisMode::mode_count);
   }
-
 }
+
+
+Adafruit_BNO08x bno08x(BNO08X_RESET);
+sh2_SensorValue_t sensorValue;
 
 
 //main setup
 void setup(void) {
   Serial.begin(115200);
-  delay(2000);
+  while (!Serial)
+    delay(10); 
 
   //setup for button D1
   pinMode(pinD1, INPUT_PULLDOWN);
   button.init(pinD1, LOW);
+
   ButtonConfig* buttonConfig = button.getButtonConfig();
-  //buttonConfig->setEventHandler(change_mode);
+  buttonConfig->setEventHandler(change_mode);
   buttonConfig->setFeature(ButtonConfig::kFeatureDoubleClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
   
   Serial.println("Adafruit BNO08x test!");
 
@@ -82,7 +83,7 @@ void setup(void) {
 ///////////////////////////////////////////////// MAIN CODE //////////////////////////////////////////////////////
 //main code
 void loop() {
-  button.check(); 
+  button.check();
   delay(10);
 
   if (bno08x.wasReset()) {
@@ -114,13 +115,11 @@ void loop() {
   //displays angle value(s) based on which "AxisMode" is selected
   if (curMode == AxisMode::mode_both || curMode == AxisMode::mode_x) {
     Serial.print("Alpha: ");
-    Serial.print(alpha);
-    delay(100);
+    Serial.println(alpha);
   }
   if (curMode == AxisMode::mode_both || curMode == AxisMode::mode_y) {
     Serial.print("Beta: ");
     Serial.println(beta);
-    delay(100);
   }
 }
 
