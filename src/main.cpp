@@ -8,11 +8,6 @@
 #include <AceButton.h>
 
 
-//define display screen
-Adafruit_ST7789 display = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
-GFXcanvas16 canvas(240, 135);
-
-
 //define misc variables
 using namespace ace_button;
 
@@ -40,35 +35,21 @@ enum AxisMode {
 AxisMode curMode = mode_both;
 
 
-//defines "change_AxisMode" - D1 double click cycles through axis modes
-void change_AxisMode (AceButton* button, uint8_t eventType, uint8_t buttonState) {
-  //Serial.print(F("handleEvent(): eventType: "));
-  //Serial.print(AceButton::eventName(eventType));
-  //Serial.print(F("; buttonState: "));
-  //Serial.println(buttonState);
-
+//defines "change_mode"
+void change_mode (AceButton* button, uint8_t eventType, uint8_t buttonState) {
+  
+  //print message
+  Serial.print(F("handleEvent(): eventType: "));
+  Serial.print(AceButton::eventName(eventType));
+  Serial.print(F("; buttonState: "));
+  Serial.println(buttonState);
+  
+  //D1 double click cycles through axis modes
   if (eventType == (uint8_t)AceButton::kEventDoubleClicked) {
     curMode = (AxisMode) ((curMode + 1) % AxisMode::mode_count);
   }
+
 }
-
-//?// IF THIS IS A 1-TIME USE, DOES IT NEED TO BE A VOID FUNCTION //?//
-//defines "rawData" - D1 long press kills LEDs and displays raw data on screen
-void rawData (AceButton* button, uint8_t eventType, uint8_t buttonState) {
-  //Serial.print(F("handleEvent(): eventType: "));
-  //Serial.print(AceButton::eventName(eventType));
-  //Serial.print(F("; buttonState: "));
-  //Serial.println(buttonState);
-
-  if (eventType == (uint8_t)AceButton::kEventLongPressed) {
-    //kill LEDs
-    //display raw data
-  }
-}
-
-
-
-
 
 
 //main setup
@@ -79,12 +60,13 @@ void setup(void) {
   //setup for button D1
   pinMode(pinD1, INPUT_PULLDOWN);
   button.init(pinD1, LOW);
-
   ButtonConfig* buttonConfig = button.getButtonConfig();
-  buttonConfig->setEventHandler(change_AxisMode);
+  //buttonConfig->setEventHandler(change_mode);
   buttonConfig->setFeature(ButtonConfig::kFeatureDoubleClick);
+  buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
+  
+  Serial.println("Adafruit BNO08x test!");
 
-  /*
   //try to initialize
   if (!bno08x.begin_I2C()) {
     Serial.println("Failed to find BNO08x chip");
@@ -93,19 +75,12 @@ void setup(void) {
     }
   }
   Serial.println("BNO08x Found!");
-  */
-
-  //turn on screen
-  display.init(135, 240);
-  display.setRotation(3);
-  canvas.setTextColor(ST77XX_GREEN);
-  pinMode(TFT_BACKLITE, OUTPUT);
-  digitalWrite(TFT_BACKLITE, 1);
-  canvas.setTextSize(2);
 
   setReports();
 }
 
+///////////////////////////////////////////////// MAIN CODE //////////////////////////////////////////////////////
+//main code
 void loop() {
   button.check(); 
   delay(10);
@@ -114,7 +89,6 @@ void loop() {
     Serial.print("sensor was reset ");
     setReports();
   }
-
   if (!bno08x.getSensorEvent(&sensorValue)) {
     return;
   }
@@ -125,27 +99,33 @@ void loop() {
   float z = sensorValue.un.accelerometer.z;
   float alpha = atan2(x, sqrt(y*y + z*z)) * RAD_TO_DEG; //angle about x-axis
   float beta = atan2(y, z) * RAD_TO_DEG; //angle about y-axis
-
-  //print values
-  /* 
+  
+  /*
+  //print raw data to workspace
   Serial.print("Accelerometer - x: ");
   Serial.print(x);
   Serial.print(" y: ");
   Serial.print(y);
   Serial.print(" z: ");
   Serial.print(z);
-  */ 
-  //prints tilt angle based corresponding "AxisMode" menu
+  delay(100);
+  */
+
+  //displays angle value(s) based on which "AxisMode" is selected
   if (curMode == AxisMode::mode_both || curMode == AxisMode::mode_x) {
-    Serial.print(" alpha: ");
+    Serial.print("Alpha: ");
     Serial.print(alpha);
+    delay(100);
   }
   if (curMode == AxisMode::mode_both || curMode == AxisMode::mode_y) {
-    Serial.print(" beta: ");
+    Serial.print("Beta: ");
     Serial.println(beta);
+    delay(100);
   }
 }
 
+
+//defines "setReports"
 void setReports(void) {
   Serial.println("Setting desired reports");
   if (!bno08x.enableReport(SH2_ACCELEROMETER)) {
